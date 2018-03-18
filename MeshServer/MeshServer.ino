@@ -15,6 +15,7 @@ IPAddress address;
 unsigned int request_i = 0;
 unsigned int response_i = 0;
 unsigned int ssid = ESP.getChipId();
+int i =0;
 
 String rootmessage = string;
 
@@ -23,7 +24,7 @@ String manageRequest(String request);
 String str, rec, decodedrec, decodedmsg;
 ESP8266WebServer server(80); //Server on port 80
 /* Create the mesh node object */
-ESP8266WiFiMesh mesh_node = ESP8266WiFiMesh(1, manageRequest);
+ESP8266WiFiMesh mesh_node = ESP8266WiFiMesh(ssid, manageRequest);
 
 /**
  * Callback for when other nodes send you data
@@ -47,24 +48,24 @@ void handleString(){
 }
 String manageRequest(String request)
 {
-	/* Print out received message */
-	Serial.print("received: ");
-	Serial.println(request);
+  /* Print out received message */
+  Serial.print("received: ");
+  Serial.println(request);
 
-	/* return a string to send back */
-	char response[60];
-	sprintf(response, "Hello world response #%d from Mesh_Node%d.", response_i++, ESP.getChipId());
-	return response;
+  /* return a string to send back */
+  char response[60];
+  sprintf(response, "-------Acknowledged by:  ",ESP.getChipId());
+  return response;
 }
 
 void setup()
 {
-	Serial.begin(115200);
-	delay(10);
+  Serial.begin(115200);
+  delay(10);
 
-	Serial.println();
-	Serial.println();
-	Serial.println("Setting up mesh node...");
+  Serial.println();
+  Serial.println();
+  Serial.println("Setting up mesh node...");
 
   mesh_node.begin();
 
@@ -75,12 +76,12 @@ void setup()
 
 void loop()
 {
-  
-  
-  if(str.length()<5 && wifi_softap_get_station_num()>=1)
+  mesh_node.acceptRequest();
+  if(str.length()==0&& wifi_softap_get_station_num()>=1)
   {
-    mesh_node.acceptRequest();
-    Serial.println("Looping for client");
+    
+    Serial.print("Looping for client");
+    Serial.println(i++);
     server.handleClient();
     delay(500);
   stat_info = wifi_softap_get_station_info();
@@ -96,16 +97,30 @@ void loop()
     
   }
   
-  else
-  { WiFi.disconnect();
-    mesh_node.acceptRequest();
-    Serial.println("Waiting");
-  /* Scan for other nodes and send them a message */
-  char request[60];
-  sprintf(request, "%s %s from Mesh_Node%d.", decodedrec.c_str(), decodedmsg.c_str(), ESP.getChipId());
-  mesh_node.attemptScan(request);
-  str = "";
+  else if (str.length()!=0)
+  { //WiFi.disconnect();
+    
+    /* Scan for other nodes and send them the message if it exists */
+    if(str.length()>0)
+    {
+      Serial.println("------SENDING THE MESSAGE------");
+      char request[60];
+      sprintf(request, "%s %s from Mesh_Node%d.", decodedrec.c_str(), decodedmsg.c_str(), ESP.getChipId());
+      mesh_node.attemptScan(request);
+      str = "";
+      rec = "";
+    }
   }
 
-	
+  else
+  {
+    delay(500);
+    Serial.println(str);
+    Serial.println(rec);
+    Serial.print("Waiting");
+    Serial.println(i++);
+    
+  }
+
+  
 }
